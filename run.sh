@@ -45,23 +45,23 @@ if [ "$ACTION" = "setup" ] ; then
 Using $TAG tag for Shipyard
 This may take a moment while the Shipyard images are pulled..."
     echo "Starting Redis..."
-    redis=$(docker -H unix:///docker.sock run -i -t -d -p ${DST_IP}6379:6379 --name shipyard_redis shipyard/redis)
+    redis=$(docker -H unix:///docker.sock run -i -t -d --name shipyard_redis shipyard/redis)
     sleep 2
     echo "Starting App Router..."
-    router=$(docker -H unix:///docker.sock run -i -t -d -p ${DST_IP}80 --link shipyard_redis:redis --name shipyard_router shipyard/router)
+    router=$(docker -H unix:///docker.sock run -i -t -d --link shipyard_redis:redis --name shipyard_router shipyard/router)
     sleep 2
     echo "Starting Load Balancer..."
-    lb=$(docker -H unix:///docker.sock run -i -t -d -p ${DST_IP}80:80 --link shipyard_redis:redis --link shipyard_router:app_router --name shipyard_lb shipyard/lb)
+    lb=$(docker -H unix:///docker.sock run -i -t -d --link shipyard_redis:redis --link shipyard_router:app_router --name shipyard_lb shipyard/lb)
     sleep 2
     echo "Starting DB..."
     EXTRA_DB_ARGS=""
     if [ ! -z "$DB_HOST_VOLUME" ] ; then
         EXTRA_DB_ARGS="-v $DB_HOST_VOLUME:/var/lib/postgresql"
     fi
-    db=$(docker -H unix:///docker.sock run -i -t -d -p ${DST_IP}5432 -e DB_NAME=shipyard -e DB_USER=shipyard -e DB_PASS=$DB_PASS $EXTRA_DB_ARGS --name shipyard_db shipyard/db)
+    db=$(docker -H unix:///docker.sock run -i -t -d -e DB_NAME=shipyard -e DB_USER=shipyard -e DB_PASS=$DB_PASS $EXTRA_DB_ARGS --name shipyard_db shipyard/db)
     sleep 5
     echo "Starting Shipyard"
-    shipyard=$(docker -H unix:///docker.sock run -i -t -d -p ${DST_IP}${DST_IP}:8000 --link shipyard_db:db --link shipyard_redis:redis --name shipyard -e ADMIN_PASS=$ADMIN_PASS -e DEBUG=$DEBUG --entrypoint /app/.docker/run.sh shipyard/shipyard:$TAG app master-worker)
+    shipyard=$(docker -H unix:///docker.sock run -i -t -d -p 8000:8000 --link shipyard_db:db --link shipyard_redis:redis --name shipyard -e ADMIN_PASS=$ADMIN_PASS -e DEBUG=$DEBUG --entrypoint /app/.docker/run.sh shipyard/shipyard:$TAG app master-worker)
     echo "
 Shipyard Stack Deployed
 
@@ -87,7 +87,7 @@ elif [ "$ACTION" = "upgrade" ] ; then
     docker -H unix:///docker.sock rm shipyard > /dev/null
 
     echo "Starting new Shipyard container"
-    docker -H unix:///docker.sock run -i -t -d -p ${DST_IP}${DST_IP}:8000 --link shipyard_db:db --link shipyard_redis:redis --name shipyard -e DEBUG=$DEBUG --entrypoint /app/.docker/run.sh shipyard/shipyard:$TAG app master-worker > /dev/null
+    docker -H unix:///docker.sock run -i -t -d -p 8000:8000 --link shipyard_db:db --link shipyard_redis:redis --name shipyard -e DEBUG=$DEBUG --entrypoint /app/.docker/run.sh shipyard/shipyard:$TAG app master-worker > /dev/null
 elif [ "$ACTION" = "cleanup" ] ; then
     cleanup
     echo "Shipyard Stack Removed"
